@@ -8,7 +8,19 @@ const API_BASE = __DEV__ ? DEV_API : PROD_API;
 class ApiClient {
   private token: string | null = null;
 
-  setToken(token: string) { this.token = token; }
+  setToken(token: string) {
+    this.token = token;
+    if (token) {
+      try { require('./secureStorage').SecureStorage.setToken(token); } catch {}
+    }
+  }
+
+  async loadToken() {
+    try {
+      const t = await require('./secureStorage').SecureStorage.getToken();
+      if (t) this.token = t;
+    } catch {}
+  }
 
   private async request(path: string, options: RequestInit = {}) {
     const headers: Record<string, string> = {
@@ -23,9 +35,11 @@ class ApiClient {
 
   get(path: string) { return this.request(path); }
   post(path: string, body?: any) { return this.request(path, { method: 'POST', body: JSON.stringify(body) }); }
+  put(path: string, body?: any) { return this.request(path, { method: 'PUT', body: JSON.stringify(body) }); }
 
   signIn(email: string, password: string) { return this.post('/auth/signin', { email, password }); }
   signUp(email: string, password: string, username: string) { return this.post('/auth/signup', { email, password, username }); }
+  getCurrentUser() { return this.get('/auth/user'); }
   getBalances() { return this.get('/api/balances'); }
   getMatches() { return this.get('/api/matches'); }
   getTickets() { return this.get('/api/tickets'); }
@@ -45,6 +59,11 @@ class ApiClient {
   getDonationSummary() { return this.get('/api/donations/summary'); }
   getTopDonors() { return this.get('/api/donations/top'); }
   getCoinPacks() { return this.get('/api/coin_packs'); }
+  buyCoinPack(packId: number) { return this.post('/api/coin_packs/buy', { pack_id: packId }); }
+  convertGameMoney(amountSca: number) { return this.post('/api/convert', { amount_sca: amountSca }); }
+  watchAd() { return this.post('/api/ads/watch'); }
+  makeDonation(amountDt: number) { return this.post('/api/donations', { amount_dt: amountDt }); }
+  buyTicket(matchId: number, category: string) { return this.post('/api/tickets/buy', { match_id: matchId, category }); }
 }
 
 export const api = new ApiClient();

@@ -393,6 +393,57 @@ app.get('/api/coin_packs', (req, res) => {
   res.json(rows);
 });
 
+app.post('/api/coin_packs/buy', (req, res) => {
+  const { pack_id } = req.body;
+  const pack = db.prepare('SELECT * FROM coin_packs WHERE id = ?').get(pack_id);
+  if (!pack) return res.status(404).json({ error: 'Pack not found' });
+  const bonus = Math.floor(pack.coins * (pack.bonus_pct / 100));
+  const total = pack.coins + bonus;
+  db.prepare('UPDATE balances SET cat_coins = cat_coins + ? WHERE user_id = ?').run(total, req.userId);
+  db.prepare('INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, "purchase", "CAT", ?, ?)').run(req.userId, total, `Achat pack ${pack.coins} Coins`);
+  res.json({ coins_added: total, pack });
+});
+
+app.post('/api/convert', (req, res) => {
+  const { amount_sca } = req.body;
+  if (!amount_sca || amount_sca < 100000) return res.status(400).json({ error: 'Minimum 100 000 $CA' });
+  const rate = 200;
+  const coins = Math.floor(amount_sca / rate);
+  const balance = db.prepare('SELECT game_money_sca FROM balances WHERE user_id = ?').get(req.userId);
+  if (!balance || balance.game_money_sca < amount_sca) return res.status(400).json({ error: 'Game money insuffisant' });
+  db.prepare('UPDATE balances SET game_money_sca = game_money_sca - ?, cat_coins = cat_coins + ? WHERE user_id = ?').run(amount_sca, coins, req.userId);
+  db.prepare('INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, "convert", "SCA", ?, ?)').run(req.userId, amount_sca, `Conversion en Coins`);
+  res.json({ coins_earned: coins, amount_sca });
+});
+
+app.post('/api/ads/watch', (req, res) => {
+  const coins = 50;
+  db.prepare('UPDATE balances SET cat_coins = cat_coins + ? WHERE user_id = ?').run(coins, req.userId);
+  db.prepare('INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, "earn", "CAT", ?, ?)').run(req.userId, coins, 'Regarder une pub');
+  res.json({ coins_earned: coins });
+});
+
+app.post('/api/donations', (req, res) => {
+  const { amount_dt } = req.body;
+  if (!amount_dt || amount_dt <= 0) return res.status(400).json({ error: 'Montant invalide' });
+  db.prepare('INSERT INTO donations (user_id, amount_dt) VALUES (?, ?)').run(req.userId, amount_dt);
+  db.prepare('UPDATE balances SET real_money_dt = real_money_dt - ? WHERE user_id = ?').run(amount_dt, req.userId);
+  res.json({ success: true, amount_dt });
+});
+
+app.post('/api/tickets/buy', (req, res) => {
+  const { match_id, category } = req.body;
+  const prices = { pelouse: 10, enceinte: 25, virage: 40, vip: 60, mouhib: 100 };
+  const price = prices[category];
+  if (!price) return res.status(400).json({ error: 'Catégorie invalide' });
+  const balance = db.prepare('SELECT real_money_dt FROM balances WHERE user_id = ?').get(req.userId);
+  if (!balance || balance.real_money_dt < price) return res.status(400).json({ error: 'Solde insuffisant' });
+  const code = `CA${Date.now().toString(36).toUpperCase()}`;
+  const result = db.prepare('INSERT INTO tickets (user_id, match_id, category, price_dt, qr_code) VALUES (?, ?, ?, ?, ?)').run(req.userId, match_id, category, price, code);
+  db.prepare('UPDATE balances SET real_money_dt = real_money_dt - ? WHERE user_id = ?').run(price, req.userId);
+  res.json({ id: result.lastInsertRowid, qr_code: code, category, price_dt: price });
+});
+
 // ========== Start ==========
 app.listen(PORT, () => {
   console.log(`\n  🏟️  Club Africain API Server running at http://localhost:${PORT}`);

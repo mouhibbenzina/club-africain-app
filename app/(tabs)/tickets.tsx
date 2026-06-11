@@ -1,6 +1,8 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useMatchStore } from '../../stores/matchStore';
 import { Colors, FontSize, Radius } from '../../constants/theme';
 
 const CATEGORIES = [
@@ -12,6 +14,31 @@ const CATEGORIES = [
 ];
 
 export default function TicketsScreen() {
+  const { upcomingMatches, fetchMatches } = useMatchStore();
+  const [buying, setBuying] = useState(false);
+
+  useEffect(() => {
+    fetchMatches();
+  }, []);
+
+  const match = upcomingMatches[0];
+
+  const handleBuy = async (categoryId: string, price: number) => {
+    if (!match) {
+      Alert.alert('Aucun match disponible');
+      return;
+    }
+    setBuying(true);
+    try {
+      const { api } = require('../services/localApi');
+      await api.buyTicket(match.id, categoryId);
+      Alert.alert('Achat réussi', `Billet ${CATEGORIES.find((c) => c.id === categoryId)?.label} acheté`);
+    } catch {
+      Alert.alert('Erreur', 'Solde insuffisant ou erreur');
+    }
+    setBuying(false);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -22,30 +49,36 @@ export default function TicketsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.matchCard}>
-          <View style={styles.matchTeams}>
-            <View style={styles.team}>
-              <View style={[styles.logo, { backgroundColor: Colors.primary }]}>
-                <Text style={styles.logoText}>CA</Text>
+        {match ? (
+          <View style={styles.matchCard}>
+            <View style={styles.matchTeams}>
+              <View style={styles.team}>
+                <View style={[styles.logo, { backgroundColor: Colors.primary }]}>
+                  <Text style={styles.logoText}>CA</Text>
+                </View>
+                <Text style={styles.teamName}>{match.home_team}</Text>
               </View>
-              <Text style={styles.teamName}>Club Africain</Text>
-            </View>
-            <Text style={styles.vs}>VS</Text>
-            <View style={styles.team}>
-              <View style={[styles.logo, { backgroundColor: '#222' }]}>
-                <Text style={styles.logoText}>USM</Text>
+              <Text style={styles.vs}>VS</Text>
+              <View style={styles.team}>
+                <View style={[styles.logo, { backgroundColor: '#222' }]}>
+                  <Text style={styles.logoText}>{(match.away_team || '???').slice(0, 3).toUpperCase()}</Text>
+                </View>
+                <Text style={styles.teamName}>{match.away_team}</Text>
               </View>
-              <Text style={styles.teamName}>US Monastir</Text>
             </View>
+            <Text style={styles.matchInfo}>{new Date(match.date).toLocaleDateString()} - {new Date(match.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+            <Text style={styles.matchInfo}>{match.venue}</Text>
           </View>
-          <Text style={styles.matchInfo}>25 Mai 2024 - 17:00</Text>
-          <Text style={styles.matchInfo}>Stade Olympique</Text>
-        </View>
+        ) : (
+          <View style={styles.matchCard}>
+            <Text style={{ color: Colors.textSecondary, textAlign: 'center' }}>Aucun match à venir</Text>
+          </View>
+        )}
 
         <Text style={styles.sectionTitle}>Choisissez votre place:</Text>
 
         {CATEGORIES.map((cat) => (
-          <TouchableOpacity key={cat.id} style={styles.categoryRow}>
+          <TouchableOpacity key={cat.id} style={styles.categoryRow} onPress={() => handleBuy(cat.id, cat.price_dt)}>
             <View style={[styles.dot, { backgroundColor: cat.color }]} />
             <View style={styles.categoryInfo}>
               <Text style={styles.categoryLabel}>{cat.label}</Text>

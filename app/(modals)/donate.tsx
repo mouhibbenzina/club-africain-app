@@ -1,9 +1,47 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Radius } from '../../constants/theme';
 
 export default function DonateModal() {
+  const [summary, setSummary] = useState({ goal: 500000, raised: 327450 });
+  const [topDonors, setTopDonors] = useState<{ username: string; total: number }[]>([]);
+  const [amount, setAmount] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { api } = require('../../services/localApi');
+        const s = await api.getDonationSummary();
+        if (s) setSummary(s);
+        const d = await api.getTopDonors();
+        if (d?.length) setTopDonors(d);
+      } catch { /* keep fallback */ }
+    };
+    load();
+  }, []);
+
+  const handleDonate = async () => {
+    const val = Number(amount);
+    if (!val || val <= 0) {
+      Alert.alert('Montant invalide', 'Entrez un montant valide en DT');
+      return;
+    }
+    try {
+      const { api } = require('../../services/localApi');
+      await api.makeDonation(val);
+      Alert.alert('Merci!', `Don de ${val} DT effectué`);
+      setAmount('');
+      const s = await api.getDonationSummary();
+      if (s) setSummary(s);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de faire le don');
+    }
+  };
+
+  const pct = Math.min(100, (summary.raised / summary.goal) * 100);
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -14,30 +52,39 @@ export default function DonateModal() {
       </View>
 
       <View style={styles.goalSection}>
-        <Text style={styles.goalText}>500 000 DT</Text>
-        <Text style={styles.raisedText}>327 450 DT atteints</Text>
+        <Text style={styles.goalText}>{summary.goal.toLocaleString()} DT</Text>
+        <Text style={styles.raisedText}>{summary.raised.toLocaleString()} DT atteints</Text>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: '65%' }]} />
+          <View style={[styles.progressFill, { width: `${pct}%` }]} />
         </View>
       </View>
 
       <Text style={styles.motivation}>Votre don compte pour notre ❤️</Text>
 
-      <TouchableOpacity style={styles.donateBtn}>
-        <Text style={styles.donateBtnText}>Faire un don</Text>
-      </TouchableOpacity>
+      <View style={styles.donateInputRow}>
+        <TextInput
+          style={styles.donateInput}
+          placeholder="Montant (DT)"
+          placeholderTextColor={Colors.textSecondary}
+          keyboardType="numeric"
+          value={amount}
+          onChangeText={setAmount}
+        />
+        <TouchableOpacity style={styles.donateBtn} onPress={handleDonate}>
+          <Text style={styles.donateBtnText}>Donner</Text>
+        </TouchableOpacity>
+      </View>
 
       <Text style={styles.topTitle}>Top Donateurs:</Text>
-      {[
-        { name: 'Tunisian Power', amount: 20000 },
-        { name: 'Clubiste', amount: 10000 },
-        { name: 'Red & White', amount: 7500 },
-        { name: 'SAIF', amount: 5000 },
-      ].map((d, i) => (
+      {(topDonors.length > 0 ? topDonors : [
+        { username: 'Tunisian Power', total: 20000 },
+        { username: 'Clubiste', total: 10000 },
+        { username: 'Red & White', total: 7500 },
+      ]).map((d, i) => (
         <View key={i} style={styles.donorRow}>
           <Text style={styles.donorRank}>{i + 1}.</Text>
-          <Text style={styles.donorName}>{d.name}</Text>
-          <Text style={styles.donorAmount}>{d.amount.toLocaleString()} DT</Text>
+          <Text style={styles.donorName}>{d.username}</Text>
+          <Text style={styles.donorAmount}>{d.total.toLocaleString()} DT</Text>
         </View>
       ))}
     </View>
@@ -54,7 +101,9 @@ const styles = StyleSheet.create({
   progressBar: { height: 8, backgroundColor: '#333', borderRadius: 4, marginTop: 12 },
   progressFill: { height: '100%', backgroundColor: Colors.primary, borderRadius: 4 },
   motivation: { color: Colors.textSecondary, fontSize: FontSize.body, textAlign: 'center', marginBottom: 16 },
-  donateBtn: { backgroundColor: Colors.primary, borderRadius: Radius.btn, padding: 16, marginHorizontal: 16, alignItems: 'center', marginBottom: 24 },
+  donateInputRow: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginBottom: 24 },
+  donateInput: { flex: 1, backgroundColor: Colors.surface, borderRadius: Radius.btn, padding: 16, color: Colors.textPrimary, fontSize: FontSize.body },
+  donateBtn: { backgroundColor: Colors.primary, borderRadius: Radius.btn, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
   donateBtnText: { color: Colors.white, fontSize: FontSize.subtitle, fontWeight: '700' },
   topTitle: { color: Colors.textPrimary, fontSize: FontSize.subtitle, fontWeight: '700', marginHorizontal: 16, marginBottom: 12 },
   donorRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#1A1A1A' },

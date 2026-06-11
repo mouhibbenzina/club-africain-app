@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { api } from '../services/localApi';
 import { MOCK_USER } from '../services/mockData';
 
-interface User { id: string; username: string; avatar?: string; role: 'fan' | 'vip' | 'admin'; }
+export interface User { id: string; username: string; avatar?: string; role: 'fan' | 'vip' | 'admin'; }
 interface AuthState {
   user: User | null; isLoading: boolean; isAuthenticated: boolean;
   signIn: (email: string, password: string) => Promise<void>;
@@ -11,28 +11,57 @@ interface AuthState {
   loadSession: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null, isLoading: true, isAuthenticated: false,
 
-  signIn: async () => {
+  signIn: async (email, password) => {
+    set({ isLoading: true });
     try {
-      const res = await api.signIn('demo@clubafricain.tn', 'demo');
+      const res = await api.signIn(email, password);
       if (res.access_token) api.setToken(res.access_token);
-      set({ user: MOCK_USER, isAuthenticated: true });
+      const user = res.user ? { id: res.user.id, username: res.user.email?.split('@')[0] || 'User', role: 'fan' as const } : MOCK_USER;
+      set({ user, isAuthenticated: true, isLoading: false });
     } catch {
-      set({ user: MOCK_USER, isAuthenticated: true });
+      set({ user: MOCK_USER, isAuthenticated: true, isLoading: false });
     }
   },
 
-  signUp: async (_email, _password, username) => {
-    try { await api.signUp(_email, _password, username); } catch {}
-    set({ user: { ...MOCK_USER, username }, isAuthenticated: true });
+  signUp: async (email, password, username) => {
+    set({ isLoading: true });
+    try {
+      const res = await api.signUp(email, password, username);
+      const user = res.user ? { id: res.user.id, username, role: 'fan' as const } : { ...MOCK_USER, username };
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch {
+      set({ user: { ...MOCK_USER, username }, isAuthenticated: true, isLoading: false });
+    }
   },
 
-  signOut: async () => { set({ user: null, isAuthenticated: false }); },
+  signOut: async () => {
+    api.setToken('');
+    try { require('../services/secureStorage').SecureStorage.clear(); } catch {}
+    set({ user: null, isAuthenticated: false, isLoading: false });
+  },
 
   loadSession: async () => {
-    try { await api.signIn('demo@clubafricain.tn', 'demo'); } catch {}
-    set({ user: MOCK_USER, isAuthenticated: true, isLoading: false });
+    set({ isLoading: true });
+    try {
+      await api.loadToken();
+    } catch {}
+    try {
+      const user = await api.getCurrentUser().catch(() => null);
+      if (user) {
+        set({ user: { id: user.id, username: user.username || 'User', role: user.role || 'fan' }, isAuthenticated: true, isLoading: false });
+        return;
+      }
+    } catch {}
+    try {
+      const res = await api.signIn('demo@clubafricain.tn', 'demo');
+      if (res.access_token) api.setToken(res.access_token);
+      const user = res.user ? { id: res.user.id, username: res.user.email?.split('@')[0] || 'Clubiste_1920', role: 'fan' as const } : MOCK_USER;
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch {
+      set({ user: MOCK_USER, isAuthenticated: true, isLoading: false });
+    }
   },
 }));

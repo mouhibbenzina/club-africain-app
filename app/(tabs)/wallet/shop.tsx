@@ -1,17 +1,47 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useBalanceStore } from '../../../stores/balanceStore';
+import { useWalletStore } from '../../../stores/walletStore';
 import { Colors, FontSize, Radius } from '../../../constants/theme';
 
-const PACKS = [
-  { coins: 500, price: 2, bonus: 0 },
-  { coins: 1200, price: 5, bonus: 0 },
-  { coins: 5000, price: 15, bonus: 5 },
-  { coins: 12000, price: 30, bonus: 10 },
-  { coins: 25000, price: 60, bonus: 15 },
-];
-
 export default function ShopScreen() {
+  const fetchBalance = useBalanceStore((s) => s.fetch);
+  const { buyCoinPack } = useWalletStore();
+  const [packs, setPacks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPacks = async () => {
+      try {
+        const { api } = require('../../../services/localApi');
+        const data = await api.getCoinPacks();
+        setPacks(data);
+      } catch {
+        setPacks([
+          { id: 1, coins: 500, price_dt: 2, bonus_pct: 0 },
+          { id: 2, coins: 1200, price_dt: 5, bonus_pct: 0 },
+          { id: 3, coins: 5000, price_dt: 15, bonus_pct: 5 },
+          { id: 4, coins: 12000, price_dt: 30, bonus_pct: 10 },
+          { id: 5, coins: 25000, price_dt: 60, bonus_pct: 15 },
+        ]);
+      }
+      setLoading(false);
+    };
+    loadPacks();
+  }, []);
+
+  const handleBuy = async (pack: any) => {
+    try {
+      await buyCoinPack(pack.id);
+      await fetchBalance('');
+      Alert.alert('Achat réussi', `${pack.coins} Coins ajoutés !`);
+    } catch {
+      Alert.alert('Erreur', "Impossible d'acheter ce pack");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -22,24 +52,28 @@ export default function ShopScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      {PACKS.map((pack) => (
-        <TouchableOpacity key={pack.coins} style={styles.packRow}>
-          <View style={styles.packLeft}>
-            <Text style={styles.packIcon}>🪙</Text>
-            <View>
-              <Text style={styles.packCoins}>{pack.coins.toLocaleString()} Coins</Text>
-              {pack.bonus > 0 && (
-                <View style={styles.bonusBadge}>
-                  <Text style={styles.bonusText}>+{pack.bonus}%</Text>
-                </View>
-              )}
+      {packs.map((pack: any) => {
+        const bonus = pack.bonus_pct || 0;
+        const totalCoins = pack.coins + Math.floor(pack.coins * bonus / 100);
+        return (
+          <TouchableOpacity key={pack.id} style={styles.packRow} onPress={() => handleBuy(pack)}>
+            <View style={styles.packLeft}>
+              <Text style={styles.packIcon}>🪙</Text>
+              <View>
+                <Text style={styles.packCoins}>{totalCoins.toLocaleString()} Coins</Text>
+                {bonus > 0 && (
+                  <View style={styles.bonusBadge}>
+                    <Text style={styles.bonusText}>+{bonus}%</Text>
+                  </View>
+                )}
+              </View>
             </View>
-          </View>
-          <View style={styles.priceTag}>
-            <Text style={styles.priceText}>{pack.price} DT</Text>
-          </View>
-        </TouchableOpacity>
-      ))}
+            <View style={styles.priceTag}>
+              <Text style={styles.priceText}>{pack.price_dt} DT</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }

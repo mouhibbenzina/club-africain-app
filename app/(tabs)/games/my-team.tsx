@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../../stores/authStore';
+import { useGameStore } from '../../../stores/gameStore';
 import { Colors, FontSize, Radius } from '../../../constants/theme';
 
 const FORMATIONS = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '5-3-2'];
@@ -14,18 +16,42 @@ const PITCH_POSITIONS: Record<string, { top: number; left: number }[]> = {
   ],
 };
 
-const PLAYERS = ['Hassen', 'Abdi', 'Yahia', 'Ben Y', 'Drager', 'Ltaief', 'BenR', 'Khalil', 'Hamdi', 'Bguir', 'Jebali'];
+const ALL_PLAYERS = ['Hassen', 'Abdi', 'Yahia', 'Ben Y', 'Drager', 'Ltaief', 'BenR', 'Khalil', 'Hamdi', 'Bguir', 'Jebali', 'Saber', 'Zaddem', 'Amamou'];
 
 export default function TeamBuilderScreen() {
+  const user = useAuthStore((s) => s.user);
+  const { myTeam, saveTeam } = useGameStore();
   const [formation, setFormation] = useState('4-3-3');
-  const [selected, setSelected] = useState<string[]>(PLAYERS.slice(0, 11));
+  const [selected, setSelected] = useState<string[]>(ALL_PLAYERS.slice(0, 11));
+
+  useEffect(() => {
+    if (myTeam) {
+      setFormation(myTeam.formation);
+      setSelected(myTeam.players);
+    }
+  }, [myTeam]);
+
+  const togglePlayer = (player: string) => {
+    if (selected.includes(player)) {
+      setSelected(selected.filter((p) => p !== player));
+    } else if (selected.length < 11) {
+      setSelected([...selected, player]);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    await saveTeam(user.id, formation, selected);
+    Alert.alert('Équipe sauvegardée', `Formation ${formation} enregistrée`);
+    router.back();
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}><Ionicons name="chevron-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
         <Text style={styles.headerTitle}>Mon Équipe</Text>
-        <TouchableOpacity onPress={() => router.back()}><Text style={styles.saveText}>Sauver</Text></TouchableOpacity>
+        <TouchableOpacity onPress={handleSave}><Text style={styles.saveText}>Sauver</Text></TouchableOpacity>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.formationRow} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
@@ -49,10 +75,13 @@ export default function TeamBuilderScreen() {
         ))}
       </View>
 
+      <View style={styles.benchLabel}>
+        <Text style={styles.benchLabelText}>Remplaçants ({selected.length}/11)</Text>
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.benchRow} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-        {PLAYERS.filter((p) => !selected.includes(p)).map((p) => (
-          <TouchableOpacity key={p} style={styles.benchChip}>
-            <Text style={styles.benchText}>{p}</Text>
+        {ALL_PLAYERS.filter((p) => !selected.includes(p)).map((p) => (
+          <TouchableOpacity key={p} style={styles.benchChip} onPress={() => togglePlayer(p)}>
+            <Text style={styles.benchText}>+{p}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -75,6 +104,8 @@ const styles = StyleSheet.create({
   fieldLine: { position: 'absolute', left: '5%', right: '5%', height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
   playerDot: { position: 'absolute', width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginLeft: -18, marginTop: -18 },
   playerInitial: { color: Colors.white, fontSize: 9, fontWeight: '800' },
+  benchLabel: { paddingHorizontal: 16, marginBottom: 8 },
+  benchLabelText: { color: Colors.textSecondary, fontSize: FontSize.caption, fontWeight: '600' },
   benchRow: { maxHeight: 44, marginBottom: 24 },
   benchChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.pill, backgroundColor: Colors.surface },
   benchText: { color: Colors.textSecondary, fontSize: FontSize.caption, fontWeight: '600' },

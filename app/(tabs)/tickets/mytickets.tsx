@@ -1,54 +1,72 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../../stores/authStore';
+import { useTicketStore } from '../../../stores/ticketStore';
 import { Colors, FontSize, Radius } from '../../../constants/theme';
 
-const MOCK_TICKET = {
-  home: 'Club Africain',
-  away: 'US Monastir',
-  date: '25 Mai 2024',
-  time: '17:00',
-  venue: 'Radès',
-  tribune: 'B',
-  rang: 12,
-  siege: 45,
-  code: 'CA1920TV',
-};
-
 export default function MyTicketsScreen() {
+  const user = useAuthStore((s) => s.user);
+  const { myTickets, fetchMyTickets } = useTicketStore();
+
+  useEffect(() => {
+    if (user) fetchMyTickets(user.id);
+  }, [user]);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <Text style={styles.matchTitle}>{MOCK_TICKET.home}</Text>
-          <Text style={styles.vs}>VS</Text>
-          <Text style={styles.matchTitle}>{MOCK_TICKET.away}</Text>
-        </View>
-        <Text style={styles.date}>{MOCK_TICKET.date} - {MOCK_TICKET.time}</Text>
-        <Text style={styles.venue}>{MOCK_TICKET.venue}</Text>
-
-        <View style={styles.divider} />
-
-        <View style={styles.seatGrid}>
-          {[['Tribune', MOCK_TICKET.tribune], ['Rang', MOCK_TICKET.rang], ['Siège', MOCK_TICKET.siege]].map(([label, value]) => (
-            <View key={label} style={styles.seatItem}>
-              <Text style={styles.seatLabel}>{label}</Text>
-              <Text style={styles.seatValue}>{value}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.qrPlaceholder}>
-          <Text style={styles.qrIcon}>▚▚▚</Text>
-          <Text style={styles.qrText}>QR CODE</Text>
-        </View>
-
-        <Text style={styles.code}>Code: {MOCK_TICKET.code}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20, marginTop: 40 }}>
+        <Ionicons name="chevron-back" size={24} color={Colors.textPrimary} onPress={() => router.back()} />
+        <Text style={styles.headerTitle}>Mes billets</Text>
       </View>
-    </View>
+
+      {myTickets.length === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 60 }}>
+          <Text style={{ color: Colors.textSecondary, fontSize: 16 }}>Aucun billet</Text>
+        </View>
+      ) : (
+        myTickets.map((ticket) => (
+          <View key={ticket.id} style={styles.card}>
+            <View style={styles.cardTop}>
+              <Text style={styles.matchTitle}>{ticket.match?.home_team || 'Club Africain'}</Text>
+              <Text style={styles.vs}>VS</Text>
+              <Text style={styles.matchTitle}>{ticket.match?.away_team || 'Adversaire'}</Text>
+            </View>
+            <Text style={styles.date}>{ticket.match?.date ? new Date(ticket.match.date).toLocaleDateString() : ''}</Text>
+            <Text style={styles.venue}>{ticket.match?.venue || ''}</Text>
+
+            <View style={styles.divider} />
+
+            <View style={styles.seatGrid}>
+              {[
+                ['Catégorie', ticket.category],
+                ['Prix', `${ticket.price_dt} DT`],
+                ['QR', ticket.qr_code || 'N/A'],
+              ].map(([label, value]) => (
+                <View key={label} style={styles.seatItem}>
+                  <Text style={styles.seatLabel}>{label}</Text>
+                  <Text style={styles.seatValue}>{value}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.qrPlaceholder}>
+              <Text style={styles.qrIcon}>▚▚▚</Text>
+              <Text style={styles.qrText}>QR CODE</Text>
+            </View>
+
+            <Text style={styles.code}>Code: {ticket.qr_code || 'N/A'}</Text>
+          </View>
+        ))
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg, justifyContent: 'center', padding: 16 },
+  container: { flex: 1, backgroundColor: Colors.bg },
+  headerTitle: { color: Colors.textPrimary, fontSize: FontSize.heading, fontWeight: '700', marginLeft: 12 },
   card: { backgroundColor: Colors.primary, borderRadius: Radius.card, padding: 24, alignItems: 'center' },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 },
   matchTitle: { color: Colors.white, fontSize: FontSize.title, fontWeight: '800' },

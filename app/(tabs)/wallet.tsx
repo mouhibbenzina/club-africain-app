@@ -1,11 +1,43 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../stores/authStore';
+import { useBalanceStore } from '../../stores/balanceStore';
+import { useWalletStore } from '../../stores/walletStore';
 import { Colors, FontSize, Radius } from '../../constants/theme';
 
 export default function WalletScreen() {
+  const user = useAuthStore((s) => s.user);
+  const { catCoins, realMoneyDt, gameMoneySca, fetch: fetchBalance } = useBalanceStore();
+  const { transactions, fetchTransactions, convertGameMoney, conversionRate } = useWalletStore();
   const [tab, setTab] = useState(0);
+  const [convertAmount, setConvertAmount] = useState('');
+
+  useEffect(() => {
+    if (user) {
+      fetchBalance(user.id);
+      fetchTransactions(user.id);
+    }
+  }, [user]);
+
+  const convertedCoins = Math.floor((Number(convertAmount) || 0) / conversionRate);
+
+  const handleConvert = async () => {
+    const amount = Number(convertAmount);
+    if (!amount || amount < 100000) {
+      Alert.alert('Montant minimum', 'Minimum 100 000 $CA');
+      return;
+    }
+    if (amount > gameMoneySca) {
+      Alert.alert('Solde insuffisant', `Vous avez ${gameMoneySca.toLocaleString()} $CA`);
+      return;
+    }
+    await convertGameMoney(amount);
+    if (user) fetchBalance(user.id);
+    setConvertAmount('');
+    Alert.alert('Conversion réussie', `${convertedCoins} 🪙 ont été ajoutés`);
+  };
 
   return (
     <View style={styles.container}>
@@ -15,9 +47,9 @@ export default function WalletScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.balancesRow}>
-          <View style={styles.balanceChip}><Text style={styles.balanceValue}>35 DT</Text></View>
-          <View style={styles.balanceChip}><Text style={styles.balanceValue}>250K $CA</Text></View>
-          <View style={styles.balanceChip}><Text style={styles.balanceValue}>12 450 🪙</Text></View>
+          <View style={styles.balanceChip}><Text style={styles.balanceValue}>{realMoneyDt} DT</Text></View>
+          <View style={styles.balanceChip}><Text style={styles.balanceValue}>{(gameMoneySca / 1000).toFixed(1)}K $CA</Text></View>
+          <View style={styles.balanceChip}><Text style={styles.balanceValue}>{catCoins.toLocaleString()} 🪙</Text></View>
         </View>
 
         <View style={styles.tabRow}>
@@ -29,19 +61,42 @@ export default function WalletScreen() {
         </View>
 
         {tab === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>Aucune transaction</Text>
-          </View>
+          transactions.length > 0 ? (
+            <View style={styles.transactionList}>
+              {transactions.map((tx: any) => (
+                <View key={tx.id} style={styles.txRow}>
+                  <View style={styles.txLeft}>
+                    <Text style={styles.txDesc}>{tx.description || tx.type}</Text>
+                    <Text style={styles.txDate}>{new Date(tx.created_at).toLocaleDateString()}</Text>
+                  </View>
+                  <Text style={[styles.txAmount, tx.type === 'earn' ? { color: Colors.green } : { color: Colors.primary }]}>
+                    {tx.type === 'earn' || tx.type === 'convert' ? '+' : '-'}{tx.amount} {tx.currency}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>Aucune transaction</Text>
+            </View>
+          )
         ) : (
           <View style={styles.convertSection}>
             <Text style={styles.convertTitle}>Convertir Game Money en Coins</Text>
-            <Text style={styles.convertRate}>100 000 $CA = 500 🪙</Text>
+            <Text style={styles.convertRate}>{conversionRate.toLocaleString()} $CA = 1 🪙</Text>
             <View style={styles.convertInputRow}>
-              <TextInput style={styles.convertInput} placeholder="0" placeholderTextColor={Colors.textSecondary} keyboardType="numeric" />
+              <TextInput
+                style={styles.convertInput}
+                placeholder="0"
+                placeholderTextColor={Colors.textSecondary}
+                keyboardType="numeric"
+                value={convertAmount}
+                onChangeText={setConvertAmount}
+              />
               <Text style={styles.convertLabel}>$CA</Text>
             </View>
-            <Text style={styles.convertResult}>= 0 🪙</Text>
-            <TouchableOpacity style={styles.convertBtn}>
+            <Text style={styles.convertResult}>= {convertedCoins.toLocaleString()} 🪙</Text>
+            <TouchableOpacity style={styles.convertBtn} onPress={handleConvert}>
               <Text style={styles.convertBtnText}>Convertir</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.shopLink} onPress={() => router.push('/(tabs)/wallet/shop')}>
@@ -71,6 +126,12 @@ const styles = StyleSheet.create({
   tabTextActive: { color: Colors.white },
   empty: { alignItems: 'center', paddingVertical: 60 },
   emptyText: { color: Colors.textSecondary, fontSize: FontSize.body },
+  transactionList: { marginHorizontal: 16 },
+  txRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: Colors.surface, borderRadius: Radius.card, padding: 16, marginBottom: 8 },
+  txLeft: { flex: 1 },
+  txDesc: { color: Colors.textPrimary, fontSize: FontSize.body, fontWeight: '600' },
+  txDate: { color: Colors.textSecondary, fontSize: FontSize.caption, marginTop: 2 },
+  txAmount: { fontSize: FontSize.subtitle, fontWeight: '700' },
   convertSection: { paddingHorizontal: 16, gap: 12 },
   convertTitle: { color: Colors.textPrimary, fontSize: FontSize.subtitle, fontWeight: '600' },
   convertRate: { color: Colors.textSecondary, fontSize: FontSize.body },

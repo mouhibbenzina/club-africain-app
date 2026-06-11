@@ -1,23 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useLeaderboardStore } from '../../../stores/leaderboardStore';
 import { Colors, FontSize, Radius } from '../../../constants/theme';
 
 const TABS = ['Général', 'Prédic.', 'Équipes'];
 
-const MOCK_LEADERBOARD = [
-  { rank: 1, username: 'Clubiste_1920', coins: 12450, highlight: true },
-  { rank: 2, username: 'Africain_4ever', coins: 11200, highlight: true },
-  { rank: 3, username: 'RedWhite', coins: 10300, highlight: true },
-  { rank: 4, username: 'CA_Tunis', coins: 9850 },
-  { rank: 5, username: 'LegendCA', coins: 8700 },
-  { rank: 6, username: 'Sans Gêne', coins: 7600 },
-  { rank: 7, username: 'Winn_CA', coins: 6900 },
-];
-
 export default function LeaderboardScreen() {
   const [activeTab, setActiveTab] = useState(0);
+  const { entries, fetch } = useLeaderboardStore();
+
+  useEffect(() => {
+    fetch();
+  }, []);
+
+  const me = entries.find((e) => e.rank <= 3)?.user_id;
+  const currentUser = 'mock-user-1';
 
   return (
     <View style={styles.container}>
@@ -41,15 +40,20 @@ export default function LeaderboardScreen() {
           <Text style={[styles.col, { flex: 2 }]}>Utilisateur</Text>
           <Text style={[styles.col, { flex: 1, textAlign: 'right' }]}>🪙</Text>
         </View>
-        {MOCK_LEADERBOARD.map((entry) => (
-          <View key={entry.rank} style={[styles.row, entry.highlight && styles.rowHighlight]}>
-            <Text style={[styles.rank, entry.highlight && styles.rankGold, { flex: 0.5 }]}>
-              {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : entry.rank}
-            </Text>
-            <Text style={[styles.username, { flex: 2 }]}>{entry.username}</Text>
-            <Text style={[styles.coins, { flex: 1, textAlign: 'right' }]}>{entry.coins.toLocaleString()}</Text>
-          </View>
-        ))}
+        {entries.map((entry) => {
+          const isMe = entry.user_id === currentUser;
+          return (
+            <View key={entry.rank} style={[styles.row, isMe && styles.rowHighlight]}>
+              <Text style={[styles.rank, entry.rank <= 3 && styles.rankGold, { flex: 0.5 }]}>
+                {entry.rank <= 3 ? ['🥇', '🥈', '🥉'][entry.rank - 1] : entry.rank}
+              </Text>
+              <Text style={[styles.username, { flex: 2 }]}>
+                {entry.username} {isMe ? '(vous)' : ''}
+              </Text>
+              <Text style={[styles.coins, { flex: 1, textAlign: 'right' }]}>{entry.cat_coins.toLocaleString()}</Text>
+            </View>
+          );
+        })}
       </ScrollView>
     </View>
   );

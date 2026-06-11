@@ -1,9 +1,35 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuthStore } from '../../../stores/authStore';
+import { useBalanceStore } from '../../../stores/balanceStore';
+import { useWalletStore } from '../../../stores/walletStore';
 import { Colors, FontSize, Radius } from '../../../constants/theme';
 
 export default function EarnScreen() {
+  const user = useAuthStore((s) => s.user);
+  const { fetch: fetchBalance } = useBalanceStore();
+  const { watchAd } = useWalletStore();
+  const [adsWatched, setAdsWatched] = useState(0);
+  const maxAds = 10;
+  const coinsPerAd = 50;
+
+  const handleWatchAd = async () => {
+    if (adsWatched >= maxAds) {
+      Alert.alert('Limite atteinte', 'Vous avez regardé toutes les pubs du jour');
+      return;
+    }
+    try {
+      await watchAd();
+      setAdsWatched((prev) => prev + 1);
+      if (user) fetchBalance(user.id);
+      Alert.alert('+50 🪙', 'Vous avez gagné 50 Coins !');
+    } catch {
+      Alert.alert('Erreur', 'Impossible de regarder la pub');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -17,21 +43,21 @@ export default function EarnScreen() {
       <View style={styles.hero}>
         <Text style={styles.heroIcon}>🎁</Text>
         <View style={styles.coinBadge}>
-          <Text style={styles.coinAmount}>+50 🪙</Text>
+          <Text style={styles.coinAmount}>+{coinsPerAd} 🪙</Text>
         </View>
       </View>
 
       <Text style={styles.desc}>Regardez des vidéos et gagnez des coins</Text>
 
-      <TouchableOpacity style={styles.watchBtn}>
+      <TouchableOpacity style={styles.watchBtn} onPress={handleWatchAd}>
         <Ionicons name="play" size={20} color={Colors.white} />
         <Text style={styles.watchBtnText}>Regarder une pub</Text>
       </TouchableOpacity>
 
       <View style={styles.progressSection}>
-        <Text style={styles.progressText}>Aujourd'hui: 3/10 pubs regardées</Text>
+        <Text style={styles.progressText}>Aujourd'hui: {adsWatched}/{maxAds} pubs regardées</Text>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: '30%' }]} />
+          <View style={[styles.progressFill, { width: `${(adsWatched / maxAds) * 100}%` }]} />
         </View>
         <Text style={styles.resetText}>Revenez demain pour plus de récompenses!</Text>
       </View>
