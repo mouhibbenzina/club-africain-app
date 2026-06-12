@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useNewsStore } from '../../stores/newsStore';
 import { useSportStore } from '../../stores/sportStore';
 import { Colors, FontSize, Radius, Shadow, Spacing } from '../../constants/theme';
@@ -47,7 +48,10 @@ export default function NewsScreen() {
           <TouchableOpacity
             key={s.id}
             style={[styles.sportChip, activeSport === s.id && { backgroundColor: s.color }]}
-            onPress={() => setActiveSport(s.id)}
+            onPress={() => {
+              setActiveSport(s.id);
+              router.push(`/(screens)/sport-hub?sportId=${s.id}`);
+            }}
           >
             <Text style={[styles.sportChipText, activeSport === s.id && styles.sportChipTextActive]}>{s.label}</Text>
           </TouchableOpacity>
@@ -80,7 +84,7 @@ export default function NewsScreen() {
         )}
 
         {news.map((item) => (
-          <TouchableOpacity key={item.id} style={[styles.newsCard, Shadow.card]}>
+          <TouchableOpacity key={item.id} style={[styles.newsCard, Shadow.card]} onPress={() => router.push(`/(screens)/news-detail?id=${item.id}`)}>
             <View style={styles.newsImagePlaceholder}>
               <Ionicons name="newspaper" size={32} color={Colors.textMuted} />
               {item.sport_label && (

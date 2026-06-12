@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSportStore } from '../../stores/sportStore';
 import { Colors, FontSize, Radius, Shadow, Spacing } from '../../constants/theme';
@@ -57,7 +58,10 @@ export default function MatchesScreen() {
           <TouchableOpacity
             key={s.id}
             style={[styles.sportChip, activeSportId === s.id && { backgroundColor: s.color }]}
-            onPress={() => setActiveSport(s.id)}
+            onPress={() => {
+              setActiveSport(s.id);
+              router.push(`/(screens)/sport-hub?sportId=${s.id}`);
+            }}
           >
             <Ionicons name={(s.icon || 'football') as any} size={16} color={activeSportId === s.id ? Colors.white : Colors.textSecondary} />
             <Text style={[styles.sportChipText, activeSportId === s.id && styles.sportChipTextActive]}>{s.label}</Text>
@@ -90,12 +94,14 @@ export default function MatchesScreen() {
         {activeStatus === 'live' && liveMatches.length > 0 && (
           <View style={styles.liveNowSection}>
             <Text style={styles.sectionLabel}>En ce moment</Text>
-            {liveMatches.map((m) => (
-              <TouchableOpacity key={m.id} style={[styles.matchCard, Shadow.card]}>
+              {liveMatches.map((m) => (
+              <TouchableOpacity key={m.id} style={[styles.matchCard, Shadow.card]} onPress={() => router.push(`/(screens)/match-detail?id=${m.id}`)}>
                 <View style={styles.matchCardHeader}>
-                  <View style={[styles.sportBadge, { backgroundColor: (m as any).sport_color || Colors.primary }]}>
-                    <Text style={styles.sportBadgeText}>{(m as any).sport_label}</Text>
-                  </View>
+                  <TouchableOpacity onPress={() => router.push(`/(screens)/sport-hub?sportId=${m.sport_id}`)}>
+                    <View style={[styles.sportBadge, { backgroundColor: (m as any).sport_color || Colors.primary }]}>
+                      <Text style={styles.sportBadgeText}>{(m as any).sport_label}</Text>
+                    </View>
+                  </TouchableOpacity>
                   <View style={styles.liveIndicator}>
                     <View style={styles.liveDot} />
                     <Text style={styles.liveIndicatorText}>LIVE</Text>
@@ -139,7 +145,7 @@ export default function MatchesScreen() {
         )}
 
         {matches.map((m) => (
-          <TouchableOpacity key={m.id} style={[styles.matchRow, Shadow.card]}>
+          <TouchableOpacity key={m.id} style={[styles.matchRow, Shadow.card]} onPress={() => router.push(`/(screens)/match-detail?id=${m.id}`)}>
             <View style={[styles.miniBadge, { backgroundColor: (m as any).sport_color || Colors.primary }]}>
               <Text style={styles.miniBadgeText}>{(m as any).sport_label || 'Sport'}</Text>
             </View>

@@ -129,8 +129,20 @@ export default function HomeScreen() {
               <Ionicons name="chatbubbles" size={22} color={Colors.green} />
               <Text style={styles.quickLinkLabel}>Communauté</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.quickLink, Shadow.card]} onPress={() => router.push('/(screens)/standings')}>
+              <Ionicons name="trophy" size={22} color={Colors.orange} />
+              <Text style={styles.quickLinkLabel}>Classement</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.quickLink, Shadow.card]} onPress={() => router.push('/(screens)/players')}>
+              <Ionicons name="people" size={22} color={Colors.blue} />
+              <Text style={styles.quickLinkLabel}>Effectif</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.quickLink, Shadow.card]} onPress={() => router.push('/(screens)/media')}>
+              <Ionicons name="videocam" size={22} color={Colors.purple} />
+              <Text style={styles.quickLinkLabel}>Médias</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.quickLink, Shadow.card]} onPress={() => router.push('/(modals)/missions')}>
-              <Ionicons name="flag" size={22} color={Colors.blue} />
+              <Ionicons name="flag" size={22} color={Colors.primaryLight} />
               <Text style={styles.quickLinkLabel}>Missions</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.quickLink, Shadow.card]} onPress={() => router.push('/(tabs)/games')}>
@@ -138,7 +150,7 @@ export default function HomeScreen() {
               <Text style={styles.quickLinkLabel}>Jeux</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.quickLink, Shadow.card]} onPress={() => router.push('/(tabs)/wallet')}>
-              <Ionicons name="wallet" size={22} color={Colors.orange} />
+              <Ionicons name="wallet" size={22} color={Colors.greenDark} />
               <Text style={styles.quickLinkLabel}>Wallet</Text>
             </TouchableOpacity>
           </View>

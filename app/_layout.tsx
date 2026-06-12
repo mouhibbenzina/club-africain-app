@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="(modals)/profile" options={{ presentation: 'modal' }} />
         <Stack.Screen name="(modals)/notifications" options={{ presentation: 'modal' }} />
         <Stack.Screen name="(modals)/celebration" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="(screens)" />
       </Stack>
     </>
   );
