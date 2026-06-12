@@ -15,8 +15,9 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Accueil', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="home" size={size} color={color} /> }} />
-      <Tabs.Screen name="live" options={{ title: 'Live', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="tv" size={size} color={color} /> }} />
-      <Tabs.Screen name="tickets" options={{ title: 'Tickets', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="ticket" size={size} color={color} /> }} />
+      <Tabs.Screen name="matches" options={{ title: 'Matchs', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="tv" size={size} color={color} /> }} />
+      <Tabs.Screen name="news" options={{ title: 'Actus', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="newspaper" size={size} color={color} /> }} />
+      <Tabs.Screen name="community" options={{ title: 'Communauté', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="chatbubbles" size={size} color={color} /> }} />
       <Tabs.Screen name="games" options={{ title: 'Jeux', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="game-controller" size={size} color={color} /> }} />
       <Tabs.Screen name="wallet" options={{ title: 'Wallet', tabBarIcon: ({ color, size }: { color: string; size: number }) => <Ionicons name="wallet" size={size} color={color} /> }} />
     </Tabs>

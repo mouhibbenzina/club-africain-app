@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/authStore';
@@ -9,7 +9,7 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { signIn } = useAuthStore();
+  const { signIn, isLoading } = useAuthStore();
 
   const handleLogin = async () => {
     try {
@@ -40,6 +40,7 @@ export default function AuthScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={!isLoading}
         />
         <TextInput
           style={styles.input}
@@ -48,11 +49,16 @@ export default function AuthScreen() {
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          editable={!isLoading}
         />
-        <TouchableOpacity style={styles.primaryBtn} onPress={handleLogin}>
-          <Text style={styles.primaryBtnText}>Se connecter</Text>
+        <TouchableOpacity style={[styles.primaryBtn, isLoading && styles.btnDisabled]} onPress={handleLogin} disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <Text style={styles.primaryBtnText}>Se connecter</Text>
+          )}
         </TouchableOpacity>
-        <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/auth/register')}>
+        <TouchableOpacity style={styles.ghostBtn} onPress={() => router.push('/auth/register')} disabled={isLoading}>
           <Text style={styles.ghostBtnText}>S'inscrire</Text>
         </TouchableOpacity>
       </View>
@@ -72,6 +78,7 @@ const styles = StyleSheet.create({
   error: { color: Colors.primary, fontSize: FontSize.body, textAlign: 'center' },
   primaryBtn: { backgroundColor: Colors.primary, borderRadius: Radius.btn, padding: 16, alignItems: 'center', marginTop: 8 },
   primaryBtnText: { color: Colors.white, fontSize: FontSize.subtitle, fontWeight: '700' },
+  btnDisabled: { opacity: 0.6 },
   ghostBtn: { borderRadius: Radius.btn, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: Colors.primary },
   ghostBtnText: { color: Colors.primary, fontSize: FontSize.subtitle, fontWeight: '700' },
 });

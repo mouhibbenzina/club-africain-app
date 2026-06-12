@@ -1,9 +1,12 @@
 import { create } from 'zustand';
 import { api } from '../services/localApi';
-import { MOCK_BALANCE } from '../services/mockData';
 
 interface BalanceState {
-  catCoins: number; realMoneyDt: number; gameMoneySca: number; isLoading: boolean;
+  catCoins: number;
+  realMoneyDt: number;
+  gameMoneySca: number;
+  isLoading: boolean;
+  error: string | null;
   fetch: (userId: string) => Promise<void>;
   addCoins: (amount: number) => void;
   deductCoins: (amount: number) => void;
@@ -12,17 +15,26 @@ interface BalanceState {
 }
 
 export const useBalanceStore = create<BalanceState>((set) => ({
-  catCoins: MOCK_BALANCE.cat_coins,
-  realMoneyDt: MOCK_BALANCE.real_money_dt,
-  gameMoneySca: MOCK_BALANCE.game_money_sca,
+  catCoins: 0,
+  realMoneyDt: 0,
+  gameMoneySca: 0,
   isLoading: false,
+  error: null,
 
   fetch: async () => {
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       const data = await api.getBalances();
-      if (data?.[0]) set({ catCoins: data[0].cat_coins, realMoneyDt: data[0].real_money_dt, gameMoneySca: data[0].game_money_sca });
-    } catch { /* keep mock */ }
+      if (data?.[0]) {
+        set({
+          catCoins: data[0].cat_coins ?? 0,
+          realMoneyDt: data[0].real_money_dt ?? 0,
+          gameMoneySca: data[0].game_money_sca ?? 0,
+        });
+      }
+    } catch (err: any) {
+      set({ error: err.message || 'Erreur de chargement du solde' });
+    }
     set({ isLoading: false });
   },
 

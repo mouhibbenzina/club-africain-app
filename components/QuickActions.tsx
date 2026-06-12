@@ -10,14 +10,14 @@ interface ActionItem {
 }
 
 const actions: ActionItem[] = [
-  { icon: 'football', label: 'Matchs', route: '/(tabs)/live' },
-  { icon: 'ticket', label: 'Billets', route: '/(tabs)/tickets' },
-  { icon: 'game-controller', label: 'Jeux', route: '/(tabs)/games' },
+  { icon: 'tv', label: 'Matchs', route: '/(tabs)/matches' },
+  { icon: 'newspaper', label: 'Actus', route: '/(tabs)/news' },
+  { icon: 'chatbubbles', label: 'Communauté', route: '/(tabs)/community' },
   { icon: 'cash', label: 'Caisse', route: '/(modals)/donate' },
   { icon: 'trophy', label: 'Classement', route: '/(tabs)/games/leaderboard' },
-  { icon: 'cart', label: 'Bout.', route: '/(tabs)/wallet/shop' },
-  { icon: 'newspaper', label: 'Missions', route: '/(modals)/missions' },
-  { icon: 'ellipsis-horizontal', label: 'Plus', route: '/(modals)/rewards' },
+  { icon: 'game-controller', label: 'Jeux', route: '/(tabs)/games' },
+  { icon: 'flag', label: 'Missions', route: '/(modals)/missions' },
+  { icon: 'ticket', label: 'Billets', route: '/(tabs)/tickets' },
 ];
 
 export function QuickActions() {

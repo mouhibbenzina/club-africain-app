@@ -1,15 +1,32 @@
 import { create } from 'zustand';
 import { api } from '../services/localApi';
-import { MOCK_TRANSACTIONS } from '../services/mockData';
 
-interface WalletState { transactions: any[]; conversionRate: number; isLoading: boolean; fetchTransactions: (userId: string) => Promise<void>; convertGameMoney: (amountSca: number) => Promise<number>; buyCoinPack: (packId: number) => Promise<void>; watchAd: () => Promise<void>; }
+interface WalletState {
+  transactions: any[];
+  conversionRate: number;
+  isLoading: boolean;
+  error: string | null;
+  fetchTransactions: (userId: string) => Promise<void>;
+  convertGameMoney: (amountSca: number) => Promise<number>;
+  buyCoinPack: (packId: number) => Promise<any>;
+  watchAd: () => Promise<number>;
+}
 
 export const useWalletStore = create<WalletState>((set, get) => ({
-  transactions: MOCK_TRANSACTIONS, conversionRate: 200, isLoading: false,
+  transactions: [],
+  conversionRate: 200,
+  isLoading: false,
+  error: null,
 
   fetchTransactions: async () => {
-    set({ isLoading: true });
-    try { const data = await api.getTransactions(); if (data?.length) set({ transactions: data }); } catch {}
+    set({ isLoading: true, error: null });
+    try {
+      const data = await api.getTransactions();
+      if (data?.length) set({ transactions: data });
+      else set({ transactions: [] });
+    } catch (err: any) {
+      set({ error: err.message || 'Erreur de chargement des transactions' });
+    }
     set({ isLoading: false });
   },
 
@@ -18,19 +35,27 @@ export const useWalletStore = create<WalletState>((set, get) => ({
     const coins = Math.floor(amountSca / rate);
     try {
       await api.convertGameMoney(amountSca);
-    } catch {}
-    return coins;
+      return coins;
+    } catch (err: any) {
+      throw err;
+    }
   },
 
   buyCoinPack: async (packId) => {
     try {
-      await api.buyCoinPack(packId);
-    } catch {}
+      const result = await api.buyCoinPack(packId);
+      return result;
+    } catch (err: any) {
+      throw err;
+    }
   },
 
   watchAd: async () => {
     try {
-      await api.watchAd();
-    } catch {}
+      const result = await api.watchAd();
+      return result.coins_earned || 50;
+    } catch (err: any) {
+      throw err;
+    }
   },
 }));
