@@ -1,10 +1,8 @@
-import Constants from 'expo-constants';
+import { API } from '../constants/api';
 
-const DEV_API = 'http://10.54.30.98:3001';
-const PROD_API = 'https://club-africain-app.onrender.com';
-const API_BASE = __DEV__ ? DEV_API : PROD_API;
-const MAX_RETRIES = 2;
-const TIMEOUT_MS = 10000;
+const API_BASE = API.BASE_URL;
+const MAX_RETRIES = API.MAX_RETRIES;
+const TIMEOUT_MS = API.TIMEOUT_MS;
 
 export class ApiError extends Error {
   status: number;

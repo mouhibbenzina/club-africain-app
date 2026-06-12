@@ -17,17 +17,7 @@
       "bundleIdentifier": "tn.clubafricain.app",
       "infoPlist": {
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": false,
-          "NSExceptionDomains": {
-            "clubafricain.tn": {
-              "NSIncludesSubdomains": true,
-              "NSTemporaryExceptionAllowsInsecureHTTPLoads": false
-            },
-            "api.clubafricain.tn": {
-              "NSIncludesSubdomains": true,
-              "NSTemporaryExceptionAllowsInsecureHTTPLoads": false
-            }
-          }
+          "NSAllowsArbitraryLoads": true
         }
       }
     },
@@ -37,6 +27,7 @@
         "backgroundColor": "#0D0D0D"
       },
       "package": "tn.clubafricain.app",
+      "usesCleartextTraffic": true,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -60,8 +51,11 @@
       "lang": "fr"
     },
     "extra": {
-      "env": "production",
-      "apiUrl": "https://api.clubafricain.tn"
+      "env": "development",
+      "serverIp": "10.54.30.98",
+      "serverPort": 3001,
+      "apiTimeout": 5000,
+      "apiRetries": 1
     },
     "plugins": [
       "expo-router",

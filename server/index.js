@@ -236,7 +236,7 @@ function seedDB() {
 
   const insertProfile = db.prepare('INSERT OR IGNORE INTO profiles (id, username, role) VALUES (?, ?, ?)');
   const insertBalance = db.prepare('INSERT OR IGNORE INTO balances (user_id, cat_coins, real_money_dt, game_money_sca) VALUES (?, ?, ?, ?)');
-  const insertMatch = db.prepare('INSERT INTO matches (home_team, away_team, date, venue, is_live, viewers, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  const insertMatch = db.prepare('INSERT INTO matches (home_team, away_team, date, venue, is_live, viewers, status, home_score, away_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const insertSportMatch = db.prepare('INSERT INTO sport_matches (sport_id, home_team, away_team, date, venue, is_live, viewers, status, competition, home_score, away_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const insertMission = db.prepare('INSERT OR IGNORE INTO missions (user_id, mission_type, label, coins, completed, claimed, progress) VALUES (?, ?, ?, ?, ?, ?, ?)');
   const insertPack = db.prepare('INSERT OR IGNORE INTO coin_packs (id, coins, price_dt, bonus_pct) VALUES (?, ?, ?, ?)');
@@ -251,9 +251,9 @@ function seedDB() {
     insertProfile.run('demo-user', 'Clubiste_1920', 'fan');
     insertBalance.run('demo-user', 12450, 35, 250000);
 
-    insertMatch.run('Club Africain', 'Espérance ST', new Date().toISOString(), 'Stade Olympique', 1, 23400, 'live');
-    insertMatch.run('Club Africain', 'US Monastir', '2025-10-15T17:00:00Z', 'Stade Olympique', 0, 0, 'upcoming');
-    insertMatch.run('Club Africain', 'Étoile du Sahel', '2025-10-22T19:00:00Z', 'Stade Olympique', 0, 0, 'upcoming');
+    insertMatch.run('Club Africain', 'Espérance ST', new Date().toISOString(), 'Stade Olympique', 1, 23400, 'live', null, null);
+    insertMatch.run('Club Africain', 'US Monastir', '2025-10-15T17:00:00Z', 'Stade Olympique', 0, 0, 'upcoming', null, null);
+    insertMatch.run('Club Africain', 'Étoile du Sahel', '2025-10-22T19:00:00Z', 'Stade Olympique', 0, 0, 'upcoming', null, null);
     insertMatch.run('Club Africain', 'CS Sfaxien', '2025-10-05T17:00:00Z', 'Stade Olympique', 0, 0, 'finished', 2, 1);
 
     // Sports
