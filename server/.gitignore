@@ -1,0 +1,12 @@
+# Club Africain API
+.env
+.env.*
+!.env.example
+club_africain.db
+club_africain.db*
+.jwt-secret
+logs
+backups
+data
+node_modules
+*.log

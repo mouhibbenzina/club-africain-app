@@ -1,0 +1,20 @@
+[Unit]
+Description=Club Africain API Server
+After=network.target
+
+[Service]
+Type=simple
+User=ca-api
+Group=ca-api
+WorkingDirectory=/opt/club-africain-api
+ExecStart=/usr/bin/node index.js
+EnvironmentFile=/opt/club-africain-api/.env
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=club-africain-api
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

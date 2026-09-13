@@ -1,0 +1,38 @@
+node_modules
+npm-debug.log*
+.expo
+.expo-shared
+expo-env.d.ts
+client/node_modules
+client/.expo
+client/.expo-shared
+client/expo-env.d.ts
+
+# Server
+server/.env
+server/.env.*
+server/club_africain.db*
+server/.jwt-secret
+server/logs
+server/backups
+server/data
+server/node_modules
+server/tests/*.db*
+
+# Client
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+*.swp

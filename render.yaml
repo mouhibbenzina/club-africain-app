@@ -1,0 +1,37 @@
+# Render Blueprint — Club Africain API
+# Usage: https://render.com -> New -> Blueprint -> select this repo -> Create.
+# Note: the SQLite DB lives on the ephemeral disk; on the free tier it resets on redeploy.
+#       Add a persistent disk later (mountPath: /app/data, DB_PATH=/app/data/club_africain.db) to keep data.
+services:
+  - type: web
+    name: club-africain-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    autoDeploy: true
+    healthCheckPath: /api/matches
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects its own PORT automatically — do NOT override it here.
+      - key: PUBLIC_URL
+        value: https://club-africain-api.onrender.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@clubafricain.tn
+      - key: ADMIN_PASSWORD
+        value: Admin123!
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: PAYMENT_PROVIDER
+        value: mock
+      - key: MAILER
+        value: console
+      - key: RATE_LIMIT_ENABLED
+        value: "true"

@@ -1,0 +1,44 @@
+name: CI
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install server deps
+        working-directory: server
+        run: npm ci --ignore-scripts || npm install --ignore-scripts && npx --yes -- node -e "require('better-sqlite3')" || (npm rebuild better-sqlite3 || true)
+      - name: Syntax check
+        working-directory: server
+        run: node --check index.js
+      - name: Smoke test
+        working-directory: server
+        env:
+          SMOKE_PORT: 3999
+          ADMIN_EMAIL: admin@clubafricain.tn
+          ADMIN_PASSWORD: Admin123!
+        run: node tests/smoke.mjs
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install client deps
+        run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - name: TypeScript check
+        run: npx tsc --noEmit

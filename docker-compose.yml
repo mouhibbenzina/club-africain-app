@@ -1,0 +1,47 @@
+# =============================================
+# Club Africain App - Production Deployment
+# =============================================
+# Deploy to any VPS with Docker installed:
+#   docker compose up -d
+# =============================================
+
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    volumes:
+      - clubafricain_data:/app/data
+    restart: unless-stopped
+    networks:
+      - clubafricain_net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    environment:
+      - API_URL=http://api:3001
+      - DOMAIN=clubafricain.tn
+    restart: unless-stopped
+    networks:
+      - clubafricain_net
+
+networks:
+  clubafricain_net:
+    driver: bridge
+
+volumes:
+  clubafricain_data:

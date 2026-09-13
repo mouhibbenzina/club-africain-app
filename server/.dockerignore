@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+club_africain.db*
+jwt-secret
+logs
+backups
+.DS_Store
