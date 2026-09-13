@@ -54,6 +54,7 @@
       "env": "development",
       "serverIp": "10.54.30.98",
       "serverPort": 3001,
+      "apiUrl": "https://club-africain-app.onrender.com",
       "apiTimeout": 5000,
       "apiRetries": 1
     },
