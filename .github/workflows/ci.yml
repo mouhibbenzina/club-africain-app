@@ -19,7 +19,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Install server deps
         working-directory: server
-        run: npm ci --ignore-scripts || npm install --ignore-scripts && npx --yes -- node -e "require('better-sqlite3')" || (npm rebuild better-sqlite3 || true)
+        run: npm ci || npm install
       - name: Syntax check
         working-directory: server
         run: node --check index.js
