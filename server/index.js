@@ -1105,7 +1105,7 @@ const STARTER_MISSIONS = [
   ['team', 'Composer équipe', 40, 0, 0, '0/1'],
   ['share', "Partager l'app", 25, 0, 0, '0/1'],
   ['news_read', 'Lire une actualité', 15, 0, 0, '0/3'],
-  ['comment', 'Commenter un match', 20, 0, 0, '0/1'],
+  ['comment', 'Poster dans la communauté', 20, 0, 0, '0/1'],
 ];
 
 function seedUserAccount(id) {
@@ -1114,6 +1114,20 @@ function seedUserAccount(id) {
   const insertMission = db.prepare('INSERT OR IGNORE INTO missions (user_id, mission_type, label, coins, completed, claimed, progress) VALUES (?, ?, ?, ?, ?, ?, ?)');
   for (const m of STARTER_MISSIONS) insertMission.run(id, ...m);
   db.prepare('INSERT INTO notifications (user_id, title, type) VALUES (?, ?, ?)').run(id, 'Bienvenue ! 100 Coins, 50 DT et 50 000 $CA offerts', 'general');
+}
+
+function advanceMission(userId, type, n = 1) {
+  if (!userId) return;
+  const mission = db.prepare('SELECT * FROM missions WHERE user_id = ? AND mission_type = ?').get(userId, type);
+  if (!mission || mission.completed) return;
+  const [curRaw, totalRaw] = String(mission.progress || '0/1').split('/');
+  const total = parseInt(totalRaw, 10) || 1;
+  const next = Math.min((parseInt(curRaw, 10) || 0) + n, total);
+  const done = next >= total;
+  db.prepare('UPDATE missions SET progress = ?, completed = ? WHERE id = ?').run(`${next}/${total}`, done ? 1 : 0, mission.id);
+  if (done) {
+    db.prepare('INSERT INTO notifications (user_id, title, type) VALUES (?, ?, ?)').run(userId, 'Mission complétée !', 'game');
+  }
 }
 
 // ========== Auth Routes ==========
@@ -1198,6 +1212,7 @@ app.post('/auth/signin', (req, res) => {
   }
 
   db.prepare('UPDATE profiles SET failed_attempts = 0, locked_until = NULL WHERE id = ?').run(profile.id);
+  advanceMission(profile.id, 'login');
   if (CONFIG.REQUIRE_EMAIL_VERIFICATION && !profile.email_verified) {
     return res.status(403).json({ error: 'Adresse email non confirmée. Vérifiez votre boîte mail.' });
   }
@@ -1385,6 +1400,7 @@ app.post('/api/predictions', requireAuth, (req, res) => {
   db.prepare('INSERT OR REPLACE INTO predictions (user_id, match_id, home_score, away_score) VALUES (?, ?, ?, ?)').run(req.userId, match_id, home_score, away_score);
   db.prepare('UPDATE balances SET game_money_sca = game_money_sca + ? WHERE user_id = ?').run(20000, req.userId);
   db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'SCA', ?, ?)").run(req.userId, 20000, 'Prédire un match');
+  advanceMission(req.userId, 'predict');
   const row = db.prepare('SELECT * FROM predictions WHERE user_id = ? AND match_id = ?').get(req.userId, match_id);
   res.json(row);
 });
@@ -1404,6 +1420,7 @@ app.post('/api/fantasy_teams', requireAuth, (req, res) => {
     db.prepare('INSERT INTO fantasy_teams (user_id, formation, players) VALUES (?, ?, ?)').run(req.userId, formation, JSON.stringify(players));
     db.prepare('UPDATE balances SET game_money_sca = game_money_sca + ? WHERE user_id = ?').run(10000, req.userId);
     db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'SCA', ?, ?)").run(req.userId, 10000, 'Composer une équipe');
+    advanceMission(req.userId, 'team');
   }
   res.json({ formation, players });
 });
@@ -1640,6 +1657,7 @@ app.post('/api/ads/watch', requireAuth, (req, res) => {
   const coins = 50;
   db.prepare('UPDATE balances SET cat_coins = cat_coins + ? WHERE user_id = ?').run(coins, req.userId);
   db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'CAT', ?, ?)").run(req.userId, coins, 'Regarder une pub');
+  advanceMission(req.userId, 'watch_ad');
   res.json({ coins_earned: coins });
 });
 
@@ -1695,6 +1713,7 @@ app.get('/api/news', (req, res) => {
 app.get('/api/news/:id', (req, res) => {
   const row = db.prepare('SELECT n.*, s.label as sport_label FROM news n LEFT JOIN sports s ON s.id = n.sport_id WHERE n.id = ?').get(req.params.id);
   if (!row) return res.status(404).json({ error: 'News not found' });
+  advanceMission(req.userId, 'news_read');
   res.json(row);
 });
 
@@ -1757,6 +1776,7 @@ app.post('/api/fan_posts', requireAuth, (req, res) => {
   const { content } = req.body;
   if (!content || content.trim().length === 0) return res.status(400).json({ error: 'Content required' });
   const result = db.prepare('INSERT INTO fan_posts (user_id, content) VALUES (?, ?)').run(req.userId, content.trim());
+  advanceMission(req.userId, 'comment');
   const post = db.prepare('SELECT fp.*, p.username, p.avatar FROM fan_posts fp JOIN profiles p ON p.id = fp.user_id WHERE fp.id = ?').get(result.lastInsertRowid);
   res.json(post);
 });
