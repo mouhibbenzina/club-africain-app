@@ -1098,6 +1098,24 @@ function requireAdmin(req, res, next) {
 
 app.use('/api', optionalAuth);
 
+const STARTER_MISSIONS = [
+  ['login', 'Se connecter', 20, 1, 0, '1/1'],
+  ['watch_ad', 'Regarder 1 pub', 50, 1, 0, '1/1'],
+  ['predict', 'Prédire un match', 30, 0, 0, '0/1'],
+  ['team', 'Composer équipe', 40, 0, 0, '0/1'],
+  ['share', "Partager l'app", 25, 0, 0, '0/1'],
+  ['news_read', 'Lire une actualité', 15, 0, 0, '0/3'],
+  ['comment', 'Commenter un match', 20, 0, 0, '0/1'],
+];
+
+function seedUserAccount(id) {
+  const addCoins = db.prepare('INSERT INTO balances (user_id, cat_coins, real_money_dt, game_money_sca) VALUES (?, ?, ?, ?)');
+  addCoins.run(id, 100, 50, 50000);
+  const insertMission = db.prepare('INSERT OR IGNORE INTO missions (user_id, mission_type, label, coins, completed, claimed, progress) VALUES (?, ?, ?, ?, ?, ?, ?)');
+  for (const m of STARTER_MISSIONS) insertMission.run(id, ...m);
+  db.prepare('INSERT INTO notifications (user_id, title, type) VALUES (?, ?, ?)').run(id, 'Bienvenue ! 100 Coins, 50 DT et 50 000 $CA offerts', 'general');
+}
+
 // ========== Auth Routes ==========
 app.post('/auth/signup', (req, res) => {
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
@@ -1123,7 +1141,7 @@ app.post('/auth/signup', (req, res) => {
   db.transaction(() => {
     db.prepare('INSERT INTO profiles (id, username, email, password_hash, password_salt, role, avatar, full_name, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(id, username, email, hashPassword(password, salt), salt, 'fan', '', null, null);
-    db.prepare('INSERT INTO balances (user_id, cat_coins, real_money_dt, game_money_sca) VALUES (?, 0, 0, 0)').run(id);
+    seedUserAccount(id);
   })();
 
   logEvent('auth.signup', { user_id: id, email, ip: req.ip });
@@ -1365,6 +1383,8 @@ app.get('/api/predictions', requireAuth, (req, res) => {
 app.post('/api/predictions', requireAuth, (req, res) => {
   const { match_id, home_score, away_score } = req.body;
   db.prepare('INSERT OR REPLACE INTO predictions (user_id, match_id, home_score, away_score) VALUES (?, ?, ?, ?)').run(req.userId, match_id, home_score, away_score);
+  db.prepare('UPDATE balances SET game_money_sca = game_money_sca + ? WHERE user_id = ?').run(20000, req.userId);
+  db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'SCA', ?, ?)").run(req.userId, 20000, 'Prédire un match');
   const row = db.prepare('SELECT * FROM predictions WHERE user_id = ? AND match_id = ?').get(req.userId, match_id);
   res.json(row);
 });
@@ -1382,6 +1402,8 @@ app.post('/api/fantasy_teams', requireAuth, (req, res) => {
     db.prepare('UPDATE fantasy_teams SET formation = ?, players = ?, updated_at = datetime("now") WHERE user_id = ?').run(formation, JSON.stringify(players), req.userId);
   } else {
     db.prepare('INSERT INTO fantasy_teams (user_id, formation, players) VALUES (?, ?, ?)').run(req.userId, formation, JSON.stringify(players));
+    db.prepare('UPDATE balances SET game_money_sca = game_money_sca + ? WHERE user_id = ?').run(10000, req.userId);
+    db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'SCA', ?, ?)").run(req.userId, 10000, 'Composer une équipe');
   }
   res.json({ formation, players });
 });
@@ -1390,6 +1412,8 @@ app.post('/api/fantasy_teams', requireAuth, (req, res) => {
 app.post('/api/player_votes', requireAuth, (req, res) => {
   const { match_id, player_name } = req.body;
   db.prepare('INSERT OR REPLACE INTO player_votes (user_id, match_id, player_name) VALUES (?, ?, ?)').run(req.userId, match_id, player_name);
+  db.prepare('UPDATE balances SET game_money_sca = game_money_sca + ? WHERE user_id = ?').run(5000, req.userId);
+  db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'SCA', ?, ?)").run(req.userId, 5000, 'Voter pour un joueur');
   res.json({ match_id, player_name });
 });
 
@@ -1617,14 +1641,6 @@ app.post('/api/ads/watch', requireAuth, (req, res) => {
   db.prepare('UPDATE balances SET cat_coins = cat_coins + ? WHERE user_id = ?').run(coins, req.userId);
   db.prepare("INSERT INTO transactions (user_id, type, currency, amount, description) VALUES (?, 'earn', 'CAT', ?, ?)").run(req.userId, coins, 'Regarder une pub');
   res.json({ coins_earned: coins });
-});
-
-app.post('/api/donations', requireAuth, (req, res) => {
-  const { amount_dt } = req.body;
-  if (!amount_dt || amount_dt <= 0) return res.status(400).json({ error: 'Montant invalide' });
-  db.prepare('INSERT INTO donations (user_id, amount_dt) VALUES (?, ?)').run(req.userId, amount_dt);
-  db.prepare('UPDATE balances SET real_money_dt = real_money_dt - ? WHERE user_id = ?').run(amount_dt, req.userId);
-  res.json({ success: true, amount_dt });
 });
 
 app.post('/api/tickets/buy', requireAuth, (req, res) => {
